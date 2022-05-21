@@ -20,6 +20,7 @@ class IBM:
     extract=True,
     )  
       self.text_file = pathlib.Path(text_file).parent / "spa-eng" / "spa.txt"
+    self.t_spa_en_mat = None
 
   
   def train(self):
@@ -167,6 +168,9 @@ class IBM:
   def getSpanishDict(self):
     return self.spa_dictionary
 
+  def getTranslationTable(self):
+    return self.t_spa_en_mat
+
   def translate(self, en_word, spa_word):
     idx_spa = self.spa_dictionary[spa_word]
     idx_en = self.en_dictionary[en_word]
@@ -174,3 +178,5 @@ class IBM:
 
   def test(self):
     print((self.t_spa_en_mat[self.t_spa_en_mat == np.min(self.t_spa_en_mat)]).shape, self.t_spa_en_mat.shape)
+
+IBM().getTranslationTable()
