@@ -21,12 +21,13 @@ class IBM:
   def __init__(self, isTrain = False) -> None:
     if isTrain:
       text_file = keras.utils.get_file(
-    fname="spa-eng.zip",
-    origin="http://storage.googleapis.com/download.tensorflow.org/data/spa-eng.zip",
-    extract=True,
-    )  
+      fname="spa-eng.zip",
+      origin="http://storage.googleapis.com/download.tensorflow.org/data/spa-eng.zip",
+      extract=True,
+      )  
       self.text_file = pathlib.Path(text_file).parent / "spa-eng" / "spa.txt"
     self.t_spa_en_mat = None
+
 
   def build_languages_vocabulary(self, sentences_dataset):
         spanish_vocab = set()
@@ -36,10 +37,10 @@ class IBM:
             spanish_vocab.update(aligned_sentence[IBM.SPANISH_SENTENCE_INDEX])
         # Add the NULL token
         spanish_vocab.add(None)
-
         self.spanish_vocab = spanish_vocab
-
         self.english_vocab = english_vocab
+
+
   def init_probabilities(self):
         self.translation_table = defaultdict(
             lambda: defaultdict(lambda: IBM.MIN_PROB)
@@ -51,17 +52,16 @@ class IBM:
         )
   
   def train(self):
-    print('Henaaa')
-    en_sentences, spa_sentences  = self.preprocess()
-    en_tokenized_sentences = self.tokenize_sentences(en_sentences)
-    spa_tokenized_sentences = self.tokenize_sentences(spa_sentences)
+    en_sentences, spa_sentences  = self.preprocess() #2 arrays of english and spanish sentences
+    en_tokenized_sentences = self.tokenize_sentences(en_sentences) #array of english tokens [['a','b'],[],...]
+    spa_tokenized_sentences = self.tokenize_sentences(spa_sentences) #array of spanish tokens
     bilingual_tokenized_text = []
     for iter in zip(en_tokenized_sentences, spa_tokenized_sentences):
-        bilingual_tokenized_text.append([iter[IBM.ENGLISH_SENTENCE_INDEX],iter[IBM.SPANISH_SENTENCE_INDEX]])
+        bilingual_tokenized_text.append([iter[IBM.ENGLISH_SENTENCE_INDEX],iter[IBM.SPANISH_SENTENCE_INDEX]]) #[ [entokens1,sptokens1], [en2,sp2], [en3,sp3], ... ]
     
     self.build_languages_vocabulary(bilingual_tokenized_text)
     self.init_probabilities()
-    
+
     self.expectation_maximization(bilingual_tokenized_text)
 
     out_file = open("translation_table.json", "w")
@@ -70,21 +70,17 @@ class IBM:
     
 
   def is_converged(self, num_of_iterations):
-    # print('Checking convergence')
     if num_of_iterations > self.MAX_NUM_OF_ITERATIONS :
-        print("Converged")
         return True
     return False
 
   def preprocess(self):
     with open(self.text_file, encoding="utf8") as f:
       lines = f.read().split("\n")[:-1]
-    text_pairs = []
     en_sentences = []
     spa_sentences = []
     for line in lines:
         eng, spa = line.split("\t")
-        text_pairs.append((spa, eng))
         en_sentences.append(eng)
         spa_sentences.append(spa)
     return en_sentences, spa_sentences
@@ -108,7 +104,6 @@ class IBM:
 
     num_of_iter = 0
     while not self.is_converged(num_of_iter):
-      print('Iteration : ', num_of_iter)
       num_of_iter += 1
 
       # Initialization of variables
@@ -118,15 +113,14 @@ class IBM:
         e_total = defaultdict(lambda: 0.0)
         for en_word in english_sentence:
             for spa_word in spanish_sentence:
-                e_total[en_word] += self.translation_table[en_word][spa_word] 
+                e_total[en_word] += self.translation_table[en_word][spa_word] #sum of probabilities between en1 and spa (probability of english word)
         
         # collect counts
         for en_word in english_sentence:
           for spa_word in spanish_sentence:
-              count_en_spa[en_word][spa_word] += self.translation_table[en_word][spa_word] / e_total[en_word]
+              count_en_spa[en_word][spa_word] += self.translation_table[en_word][spa_word] / e_total[en_word] #p(e|s) = p(s inter e)/p(e)
               total_spa[spa_word] += self.translation_table[en_word][spa_word] / e_total[en_word]
 
-      print('Finished first loop')
 
       # estimate probabilities
       for en_word, spa_words in count_en_spa.items():
@@ -134,7 +128,6 @@ class IBM:
             if count_en_spa[en_word][spa_word] != 0:
                 self.translation_table[en_word][spa_word] = count_en_spa[en_word][spa_word] / total_spa[spa_word]
 
-      print("finish ")
     # end while
 
   def load(self):
