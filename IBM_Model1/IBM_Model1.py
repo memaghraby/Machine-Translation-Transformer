@@ -95,9 +95,11 @@ class IBM:
     return tokenized_sentences
 
 
+
   def expectation_maximization(self, sentences_dataset):
+    #t(e|f) = summation(count(e|f)) / summation over e(summation(count(e|f)))
     count_en_spa = defaultdict(lambda: defaultdict(lambda: 0.0))
-    total_spa = defaultdict(lambda: 0.0)
+    spa_total = defaultdict(lambda: 0.0)
     initial_prob = 1 / len(self.english_vocab)
     for t in self.english_vocab:
         self.translation_table[t] = defaultdict(lambda: initial_prob)
@@ -106,32 +108,29 @@ class IBM:
     while not self.is_converged(num_of_iter):
       num_of_iter += 1
 
-      # Initialization of variables
       for aligned_sentences in sentences_dataset:
         english_sentence = aligned_sentences[IBM.ENGLISH_SENTENCE_INDEX]
         spanish_sentence = aligned_sentences[IBM.SPANISH_SENTENCE_INDEX]
-        e_total = defaultdict(lambda: 0.0)
+        en_total = defaultdict(lambda: 0.0)
         for en_word in english_sentence:
             for spa_word in spanish_sentence:
-                e_total[en_word] += self.translation_table[en_word][spa_word] #sum of probabilities between en1 and spa (probability of english word)
+                en_total[en_word] += self.translation_table[en_word][spa_word] 
         
-        # collect counts
         for en_word in english_sentence:
-          for spa_word in spanish_sentence:
-              count_en_spa[en_word][spa_word] += self.translation_table[en_word][spa_word] / e_total[en_word] #p(e|s) = p(s inter e)/p(e)
-              total_spa[spa_word] += self.translation_table[en_word][spa_word] / e_total[en_word]
+          for spa_word in spanish_sentence: 
+              #summation(count(e|f))
+              count_en_spa[en_word][spa_word] += self.translation_table[en_word][spa_word] / en_total[en_word] 
+              #summation over e(summation(count(e|f)))
+              spa_total[spa_word] += self.translation_table[en_word][spa_word] / en_total[en_word] 
 
 
-      # estimate probabilities
       for en_word, spa_words in count_en_spa.items():
           for spa_word in spa_words:
             if count_en_spa[en_word][spa_word] != 0:
-                self.translation_table[en_word][spa_word] = count_en_spa[en_word][spa_word] / total_spa[spa_word]
+                self.translation_table[en_word][spa_word] = count_en_spa[en_word][spa_word] / spa_total[spa_word] #t(e|f)
 
-    # end while
 
   def load(self):
-    # Load the language maps
     with open("translation_table.json", "r") as f:
       self.translation_table = json.load(f)
 
