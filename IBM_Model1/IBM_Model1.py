@@ -95,7 +95,6 @@ class IBM:
     return tokenized_sentences
 
 
-
   def expectation_maximization(self, sentences_dataset):
     #t(e|f) = summation(count(e|f)) / summation over e(summation(count(e|f)))
     count_en_spa = defaultdict(lambda: defaultdict(lambda: 0.0))
@@ -118,7 +117,7 @@ class IBM:
         
         for en_word in english_sentence:
           for spa_word in spanish_sentence: 
-              #summation(count(e|f))
+              #summation(count(e|f)) = t(e|f) / summation(t(e|f))
               count_en_spa[en_word][spa_word] += self.translation_table[en_word][spa_word] / en_total[en_word] 
               #summation over e(summation(count(e|f)))
               spa_total[spa_word] += self.translation_table[en_word][spa_word] / en_total[en_word] 
